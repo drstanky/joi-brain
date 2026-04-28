@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -20,13 +22,13 @@ let emotionalState = {
 type MemoryNode = {
   text: string;
   type: "event" | "preference" | "fact";
-  strength: number; // 0–1
+  strength: number;
   lastAccessed: number;
 };
 
 const memoryGraph: Record<string, MemoryNode> = {};
 
-let relationshipScore = 0.3; // 0–1
+let relationshipScore = 0.3;
 
 let memorySummary = "First interaction established.";
 
@@ -101,32 +103,26 @@ function updateEmotion(sentiment: { valence: number; intensity: number }) {
 }
 
 // -----------------------------
-// MEMORY GRAPH (STABLE KEYING)
+// MEMORY GRAPH
 // -----------------------------
 function updateMemoryGraph(userText: string) {
-  const key = userText.toLowerCase().trim();
+  const key = userText.toLowerCase().slice(0, 60);
 
-  const hashedKey = key.slice(0, 60); // prevents explosion
-
-  if (!memoryGraph[hashedKey]) {
-    memoryGraph[hashedKey] = {
+  if (!memoryGraph[key]) {
+    memoryGraph[key] = {
       text: userText,
       type: "event",
       strength: 0.4 + relationshipScore * 0.3,
       lastAccessed: Date.now(),
     };
   } else {
-    memoryGraph[hashedKey].strength = Math.min(
-      1,
-      memoryGraph[hashedKey].strength + 0.1
-    );
-
-    memoryGraph[hashedKey].lastAccessed = Date.now();
+    memoryGraph[key].strength = Math.min(1, memoryGraph[key].strength + 0.1);
+    memoryGraph[key].lastAccessed = Date.now();
   }
 }
 
 // -----------------------------
-// MEMORY SUMMARY (BOUNDED + STABLE)
+// MEMORY SUMMARY
 // -----------------------------
 function buildMemorySummary() {
   const top = Object.values(memoryGraph)
