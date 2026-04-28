@@ -1,0 +1,8 @@
+POST http://localhost:3000/api/joi
+Content-Type: application/json
+
+{
+  "messages": [
+    { "role": "user", "content": "hello" }
+  ]
+}
