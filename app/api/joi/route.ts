@@ -2,8 +2,15 @@ export const runtime = "nodejs";
 
 import OpenAI from "openai";
 
+// -----------------------------
+// SAFE CLIENT INITIALIZATION
+// -----------------------------
+if (!process.env.GROQ_API_KEY) {
+  console.error("GROQ_API_KEY is missing in environment variables");
+}
+
 const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || "",
   baseURL: "https://api.groq.com/openai/v1",
 });
 
@@ -180,40 +187,52 @@ ${memorySummary}
 // API ROUTE
 // -----------------------------
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  try {
+    const { messages } = await req.json();
 
-  const lastUserMessage =
-    messages[messages.length - 1]?.content || "";
+    const lastUserMessage =
+      messages?.[messages.length - 1]?.content || "";
 
-  lastInteractionTime = Date.now();
+    lastInteractionTime = Date.now();
 
-  applyDecay();
+    applyDecay();
 
-  const sentiment = await getSentiment(lastUserMessage);
+    const sentiment = await getSentiment(lastUserMessage);
 
-  updateEmotion(sentiment);
+    updateEmotion(sentiment);
 
-  updateMemoryGraph(lastUserMessage);
+    updateMemoryGraph(lastUserMessage);
 
-  buildMemorySummary();
+    buildMemorySummary();
 
-  const completion = await client.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [
-      { role: "system", content: getSystemPrompt() },
-      ...messages,
-    ],
-    temperature: 0.85,
-    max_tokens: 300,
-  });
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: getSystemPrompt() },
+        ...messages,
+      ],
+      temperature: 0.85,
+      max_tokens: 300,
+    });
 
-  const reply = completion.choices[0].message.content || "";
+    const reply = completion.choices[0].message.content || "";
 
-  return Response.json({
-    reply,
-    emotionalState,
-    expression: getExpression(emotionalState),
-    relationship: relationshipScore,
-    memory: memorySummary,
-  });
+    return Response.json({
+      reply,
+      emotionalState,
+      expression: getExpression(emotionalState),
+      relationship: relationshipScore,
+      memory: memorySummary,
+    });
+  } catch (err: any) {
+    console.error("JOI API ERROR:", err);
+
+    return Response.json(
+      {
+        error: "JOI API crashed",
+        detail: err?.message || "unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }
