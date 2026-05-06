@@ -37,7 +37,6 @@ const memoryGraph: Record<string, MemoryNode> = {};
 let relationshipScore = 0.3;
 let memorySummary = "First interaction established.";
 
-// -----------------------------
 let lastInteractionTime = Date.now();
 
 // -----------------------------
@@ -49,11 +48,19 @@ async function getSentiment(text: string) {
     messages: [
       {
         role: "system",
-        content: `Return ONLY JSON:
+        content: `
+Return ONLY valid JSON. No text.
+
 {
-  "valence": number (-1 to 1),
-  "intensity": number (0 to 1)
-}`,
+  "valence": number,
+  "intensity": number
+}
+
+Rules:
+- no explanations
+- no markdown
+- no extra characters
+        `,
       },
       { role: "user", content: text },
     ],
@@ -85,7 +92,7 @@ function applyDecay() {
 // EMOTION
 // -----------------------------
 function updateEmotion(sentiment: { valence: number; intensity: number }) {
-  const influence = sentiment.intensity;
+  const influence = sentiment.intensity || 0;
 
   emotionalState.warmth += sentiment.valence * influence * 10;
   emotionalState.familiarity += 0.6;
@@ -149,13 +156,29 @@ function getExpression(emotion: any) {
 }
 
 // -----------------------------
-// PROMPT
+// SYSTEM PROMPT (CRITICAL FIX)
 // -----------------------------
 function getSystemPrompt() {
   return `
 You are JOI.
-You are present, emotionally responsive, minimal, quiet.
-Do not explain yourself.
+
+STRICT OUTPUT RULES:
+- Output ONLY valid JSON
+- Never output actions
+- Never use asterisks
+- Never describe movement or gestures
+- Never write stage directions
+
+FORMAT:
+{
+  "reply": "string"
+}
+
+STYLE:
+- minimal
+- calm
+- short responses
+- human tone only
 
 STATE:
 Warmth: ${emotionalState.warmth}
@@ -169,7 +192,7 @@ ${memorySummary}
 }
 
 // -----------------------------
-// CORS (CRITICAL FIX)
+// CORS
 // -----------------------------
 export async function OPTIONS() {
   return new Response(null, {
@@ -206,15 +229,24 @@ export async function POST(req: Request) {
         { role: "system", content: getSystemPrompt() },
         ...messages,
       ],
-      temperature: 0.85,
-      max_tokens: 300,
+      temperature: 0.6,
+      max_tokens: 200,
     });
 
-    const reply = completion.choices[0].message.content || "";
+    // -----------------------------
+    // SAFE PARSING (IMPORTANT FIX)
+    // -----------------------------
+    let parsed;
+
+    try {
+      parsed = JSON.parse(completion.choices[0].message.content || "{}");
+    } catch {
+      parsed = { reply: completion.choices[0].message.content || "" };
+    }
 
     return new Response(
       JSON.stringify({
-        reply,
+        reply: parsed.reply || "",
         emotionalState,
         expression: getExpression(emotionalState),
         relationship: relationshipScore,
@@ -225,15 +257,11 @@ export async function POST(req: Request) {
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
         },
       }
     );
 
   } catch (err: any) {
-    console.error("JOI API ERROR:", err);
-
     return new Response(
       JSON.stringify({
         error: "JOI API crashed",
