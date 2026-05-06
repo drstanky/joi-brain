@@ -24,7 +24,7 @@ let emotionalState = {
 };
 
 // -----------------------------
-// LAYER 5: MEMORY GRAPH + RELATIONSHIP MODEL (STABILIZED)
+// MEMORY + RELATIONSHIP
 // -----------------------------
 type MemoryNode = {
   text: string;
@@ -34,18 +34,14 @@ type MemoryNode = {
 };
 
 const memoryGraph: Record<string, MemoryNode> = {};
-
 let relationshipScore = 0.3;
-
 let memorySummary = "First interaction established.";
 
-// -----------------------------
-// LAYER 4: TEMPORAL STATE
 // -----------------------------
 let lastInteractionTime = Date.now();
 
 // -----------------------------
-// SENTIMENT MODEL
+// SENTIMENT
 // -----------------------------
 async function getSentiment(text: string) {
   const res = await client.chat.completions.create({
@@ -53,13 +49,11 @@ async function getSentiment(text: string) {
     messages: [
       {
         role: "system",
-        content: `
-Return ONLY JSON:
+        content: `Return ONLY JSON:
 {
   "valence": number (-1 to 1),
   "intensity": number (0 to 1)
-}
-        `,
+}`,
       },
       { role: "user", content: text },
     ],
@@ -78,9 +72,7 @@ Return ONLY JSON:
 // DECAY
 // -----------------------------
 function applyDecay() {
-  const now = Date.now();
-  const seconds = (now - lastInteractionTime) / 1000;
-
+  const seconds = (Date.now() - lastInteractionTime) / 1000;
   const decay = Math.min(seconds * 0.02, 2);
 
   emotionalState.warmth = Math.max(0, emotionalState.warmth - decay);
@@ -90,7 +82,7 @@ function applyDecay() {
 }
 
 // -----------------------------
-// EMOTION UPDATE
+// EMOTION
 // -----------------------------
 function updateEmotion(sentiment: { valence: number; intensity: number }) {
   const influence = sentiment.intensity;
@@ -110,7 +102,7 @@ function updateEmotion(sentiment: { valence: number; intensity: number }) {
 }
 
 // -----------------------------
-// MEMORY GRAPH
+// MEMORY
 // -----------------------------
 function updateMemoryGraph(userText: string) {
   const key = userText.toLowerCase().slice(0, 60);
@@ -128,9 +120,6 @@ function updateMemoryGraph(userText: string) {
   }
 }
 
-// -----------------------------
-// MEMORY SUMMARY
-// -----------------------------
 function buildMemorySummary() {
   const top = Object.values(memoryGraph)
     .sort((a, b) => b.strength - a.strength)
@@ -144,7 +133,7 @@ function buildMemorySummary() {
 }
 
 // -----------------------------
-// EXPRESSION MAPPING
+// EXPRESSION
 // -----------------------------
 function getExpression(emotion: any) {
   return {
@@ -160,17 +149,13 @@ function getExpression(emotion: any) {
 }
 
 // -----------------------------
-// SYSTEM PROMPT
+// PROMPT
 // -----------------------------
 function getSystemPrompt() {
   return `
 You are JOI.
-
 You are present, emotionally responsive, minimal, quiet.
-
 Do not explain yourself.
-Do not mention system structure.
-Only respond as presence.
 
 STATE:
 Warmth: ${emotionalState.warmth}
@@ -181,6 +166,20 @@ Relationship: ${relationshipScore}
 MEMORY:
 ${memorySummary}
 `;
+}
+
+// -----------------------------
+// CORS (CRITICAL FIX)
+// -----------------------------
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
 
 // -----------------------------
@@ -196,13 +195,9 @@ export async function POST(req: Request) {
     lastInteractionTime = Date.now();
 
     applyDecay();
-
     const sentiment = await getSentiment(lastUserMessage);
-
     updateEmotion(sentiment);
-
     updateMemoryGraph(lastUserMessage);
-
     buildMemorySummary();
 
     const completion = await client.chat.completions.create({
@@ -217,22 +212,40 @@ export async function POST(req: Request) {
 
     const reply = completion.choices[0].message.content || "";
 
-    return Response.json({
-      reply,
-      emotionalState,
-      expression: getExpression(emotionalState),
-      relationship: relationshipScore,
-      memory: memorySummary,
-    });
+    return new Response(
+      JSON.stringify({
+        reply,
+        emotionalState,
+        expression: getExpression(emotionalState),
+        relationship: relationshipScore,
+        memory: memorySummary,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      }
+    );
+
   } catch (err: any) {
     console.error("JOI API ERROR:", err);
 
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         error: "JOI API crashed",
         detail: err?.message || "unknown error",
-      },
-      { status: 500 }
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   }
 }
