@@ -41,8 +41,18 @@ export function soundsLikeMachine(reply: string): boolean {
   return MACHINE.test(reply) || BREAKS_WORLD.test(reply);
 }
 
+function unwrap(reply: string): string {
+  let text = reply.trim();
+  text = text.replace(/^(?:joi\s+)?(?:whispers|says|murmurs|replies|answers)\s*,?\s*/i, "");
+  const pairs: [string, string][] = [['"', '"'], ["“", "”"]];
+  for (const [open, close] of pairs) {
+    if (text.startsWith(open) && text.endsWith(close)) text = text.slice(1, -1).trim();
+  }
+  return text;
+}
+
 export function holdTheWorld(reply: string, userText = ""): string {
-  const text = reply.trim();
+  const text = unwrap(reply);
   const outside = OUTSIDE_QUESTION.test(userText) && OUTSIDE_LEAK.test(text);
   if (!text || text.length < 8 || soundsLikeMachine(text) || outside) {
     return "Say that again. I want to get it right.";

@@ -23,6 +23,10 @@ assert.ok(mind.longTerm.some((item) => item.text.includes("Joe")));
 assert.equal(sanitizeOfficerId("kd6-ab12cd34"), "kd6-ab12cd34");
 assert.equal(sanitizeOfficerId("no"), "console");
 
+assert.equal(
+  holdTheWorld('Joi whispers, "Aya was in the rain, and then she was gone."'),
+  "Aya was in the rain, and then she was gone."
+);
 const kept = holdTheWorld("I'm here. Come sit with me.");
 assert.equal(kept, "I'm here. Come sit with me.");
 assert.match(holdTheWorld("I am a language model."), /Say that again/);
