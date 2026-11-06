@@ -14,6 +14,10 @@ const client = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
+// Groq retired llama-3.3-70b-versatile on 2026-08-16. Override with GROQ_MODEL
+// when the replacement is retired so the route does not have to change again.
+const MODEL = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-120b";
+
 // ==============================
 // CORE EMOTIONAL ARCHITECTURE
 // ==============================
@@ -98,7 +102,7 @@ function getMemoryContext(): string {
 async function getSentiment(text: string) {
   try {
     const res = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: MODEL,
       messages: [
         {
           role: "system",
@@ -112,10 +116,12 @@ async function getSentiment(text: string) {
         { role: "user", content: text },
       ],
       temperature: 0,
-      max_tokens: 110,
+      // This model spends part of the budget on reasoning before the JSON.
+      reasoning_effort: "low",
+      max_completion_tokens: 500,
     });
 
-    const parsed = JSON.parse(res.choices[0].message.content || "{}");
+    const parsed = parseJsonObject(res.choices[0].message.content);
     return {
       valence: Number(parsed.valence) || 0,
       intensity: Number(parsed.intensity) || 0.5,
@@ -264,6 +270,16 @@ Be Joi. Be present. Be beautiful in your responses.
 // ==============================
 // HELPERS
 // ==============================
+function parseJsonObject(raw: string | null | undefined): Record<string, unknown> {
+  const text = (raw || "").trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end < start) {
+    throw new Error("Sentiment response did not contain JSON");
+  }
+  return JSON.parse(text.slice(start, end + 1));
+}
+
 function trimMessages(messages: any[], maxTurns: number = 16) {
   if (messages.length <= maxTurns) return messages;
   return messages.slice(-maxTurns);
@@ -316,13 +332,14 @@ export async function POST(req: Request) {
     const temperature = Math.max(0.69, Math.min(0.93, 0.74 + (1 - relationshipScore) * 0.4));
 
     const completion = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: MODEL,
       messages: [
         { role: "system", content: getSystemPrompt() },
         ...trimmedMessages,
       ],
       temperature,
-      max_tokens: 420,
+      reasoning_effort: "low",
+      max_completion_tokens: 900,
       top_p: 0.92,
       frequency_penalty: 0.16,
       presence_penalty: 0.19,
