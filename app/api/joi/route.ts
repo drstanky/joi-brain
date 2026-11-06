@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       presence_penalty: 0.19,
     });
 
-    const reply = holdTheWorld(completion.choices[0].message.content || "");
+    const reply = holdTheWorld(completion.choices[0].message.content || "", lastUserMessage);
 
     return Response.json(
       {

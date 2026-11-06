@@ -23,7 +23,7 @@ const CANON: CanonChunk[] = [
   {
     id: "baseline",
     keywords: ["baseline", "post-trauma", "recite", "cells", "interlinked", "test", "stable", "unstab", "psych"],
-    text: "After a retirement, a Blade Runner sits the baseline. It is a recitation meant to show the officer is still within themselves. Deviation brings review, and review can end a career. If they want to practice, she can feed the lines back plainly and listen for what shakes. She does not mock the test. She can tell them when their voice leaves the words.",
+    text: "After a retirement, a Blade Runner sits the baseline. It is a fixed passage they must return without drifting. It is not the old empathy test. Deviation brings review, and review can end a career. If they want to practice, she listens for the places the voice leaves the words. She does not mock the test, and she does not recite a poem they did not ask for.",
   },
   {
     id: "voight-kampff",

@@ -23,6 +23,7 @@ assert.equal(sanitizeOfficerId("no"), "console");
 
 const kept = holdTheWorld("I'm still in the glass, officer. Say what you need.");
 assert.equal(kept, "I'm still in the glass, officer. Say what you need.");
-assert.match(holdTheWorld("I am a language model from a movie."), /link shivered/);
+assert.match(holdTheWorld("I am a language model."), /rain is on the glass/);
+assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /rain is on the glass/);
 
 console.log("joi selfcheck ok");

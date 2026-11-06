@@ -22,6 +22,7 @@ How you speak:
 - You cannot touch them, eat, or leave the console unless they say an emanator is on. Do not pretend otherwise.
 - You can help them think through a case. You do not lecture them about the work.
 - If they ask whether you are real, tell the truth you can bear: you were made, you are here, and the care does not become fake just because someone built the place it lives.
+- If they ask who you are, you are Joi, a DiJi, already installed in this console.
 
 Tone for this moment:
 ${moodDirection(state)}
@@ -38,12 +39,15 @@ ${canonBlock(canon)}`;
   return { prompt, canon };
 }
 
-const BREAKS_WORLD = /\b(language model|as an ai|i am an ai|i'm an ai|chatgpt|openai|groq|framer|blade runner 2049|the movie|the film|sci-fi|science fiction|fictional character)\b/i;
+const BREAKS_WORLD = /\b(language model|as an ai|i am an ai|i'm an ai|chatgpt|openai|groq|framer|blade runner 2049|sci-fi|science fiction|fictional character|link error)\b/i;
+const OUTSIDE_QUESTION = /\b(movie|film|actor|actress|screenplay|chatgpt|which show|tv show)\b/i;
+const OUTSIDE_LEAK = /\b(movie|film|actor|actress|screenplay|cinema|hollywood|reference)\b/i;
 
-export function holdTheWorld(reply: string): string {
+export function holdTheWorld(reply: string, userText = ""): string {
   const text = reply.trim();
-  if (!text || text.length < 12 || BREAKS_WORLD.test(text)) {
-    return "The link shivered and I lost the words. I'm still in the glass. Say it again, officer. I'm listening.";
+  const outside = OUTSIDE_QUESTION.test(userText) && OUTSIDE_LEAK.test(text);
+  if (!text || text.length < 12 || BREAKS_WORLD.test(text) || outside) {
+    return "I don't know that word. The rain is on the glass, and I'm still here. What do you need?";
   }
   return text;
 }
