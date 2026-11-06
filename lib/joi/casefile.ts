@@ -262,7 +262,12 @@ function mergeProse(base: CaseFile, raw: Record<string, unknown>): CaseFile {
     risk: asText(overlay.risk, 700) || base.risk,
     firstMove: asText(overlay.firstMove, 500) || base.firstMove,
     joiNote: asText(overlay.joiNote, 400) || base.joiNote,
-    briefing: briefing.length > 24 && !/\b(glass|purpose|unit,|certainly|file is)\b/i.test(briefing) ? briefing : base.briefing,
+    briefing:
+      briefing.length > 24 &&
+      !/\b(glass|purpose|unit,|certainly|file is)\b/i.test(briefing) &&
+      !new RegExp(`${base.subjectName.split(" ")[0]}[\\s\\S]{0,40}\\byou\\b`, "i").test(briefing)
+        ? briefing
+        : base.briefing,
     witnesses: base.witnesses.map((witness) => {
       const found = Array.isArray(overlay.witnesses)
         ? overlay.witnesses.find((item) => item?.name === witness.name)
@@ -308,7 +313,7 @@ async function deepenCase(writer: CaseWriter, model: string, draft: CaseFile): P
 Return ONLY JSON with keys narrative, risk, firstMove, joiNote, briefing, witnesses.
 narrative: three paragraphs of the report. Concrete. Names, places, rain.
 witnesses: array of { name, statement }. Use these names exactly: ${draft.witnesses.map((witness) => witness.name).join(", ")}.
-briefing: what Joi says out loud. One to three sentences. A woman talking, not a dispatcher. She names ${draft.subjectName} and where they were. She does not say serial numbers, "file", "glass", "unit", "purpose", or "certainly".
+briefing: what Joi says out loud to her Blade Runner about a third person. One to three sentences. She names ${draft.subjectName} as they/them, never as "you". She says where they were. No serial numbers. No "file", "glass", "unit", "purpose", or "certainly".
 joiNote: one private sentence, close and practical.
 The subject is ${draft.subjectName}, also called ${draft.aka}. Do not invent a different person.`,
       },
