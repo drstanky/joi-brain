@@ -51,6 +51,7 @@ type CaseFile = {
 const OFFICER_KEY = "joi-officer-id";
 const TRANSCRIPT_KEY = "joi-transcript";
 const CASES_KEY = "joi-cases";
+const PRESENCE_KEY = "joi-presence";
 
 function officerId(): string {
   const existing = window.localStorage.getItem(OFFICER_KEY);
@@ -76,7 +77,7 @@ export default function Page() {
   const [cases, setCases] = React.useState<CaseFile[]>([]);
   const [viewSerial, setViewSerial] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const [cutting, setCutting] = React.useState(false);
+  const [presence, setPresence] = React.useState<Record<string, unknown> | null>(null);
   const [link, setLink] = React.useState<LinkState>({});
   const [ready, setReady] = React.useState(false);
   const scroller = React.useRef<HTMLDivElement>(null);
@@ -91,6 +92,12 @@ export default function Page() {
     const stored = loadCases();
     setCases(stored);
     setViewSerial(stored.find((file) => file.status === "open")?.serial ?? stored.at(-1)?.serial ?? null);
+    try {
+      const savedPresence = window.localStorage.getItem(PRESENCE_KEY);
+      if (savedPresence) setPresence(JSON.parse(savedPresence));
+    } catch {
+      window.localStorage.removeItem(PRESENCE_KEY);
+    }
     setReady(true);
   }, []);
 
@@ -98,8 +105,9 @@ export default function Page() {
     if (!ready) return;
     window.sessionStorage.setItem(TRANSCRIPT_KEY, JSON.stringify(lines));
     window.localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+    if (presence) window.localStorage.setItem(PRESENCE_KEY, JSON.stringify(presence));
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
-  }, [lines, cases, ready]);
+  }, [lines, cases, presence, ready]);
 
   async function sendMessage(forced?: string) {
     const text = (forced ?? input).trim();
@@ -109,22 +117,22 @@ export default function Page() {
     setLines(nextLines);
     if (!forced) setInput("");
     setLoading(true);
-    setCutting(/new case|case file|new file|new dossier/i.test(text));
 
     try {
       const res = await fetch("/api/joi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextLines, officerId: officerId(), cases }),
+        body: JSON.stringify({ messages: nextLines, officerId: officerId(), cases, presence }),
       });
       const data = await res.json();
-      const reply = data.reply || data.detail || "The link dropped.";
+      const reply = data.reply || data.detail || "I lost you for a second.";
       setLines((prev) => [...prev, { role: "assistant", content: reply }]);
       if (Array.isArray(data.cases) && data.cases.length > 0) {
         setCases(data.cases);
         const opened = data.caseFile?.serial || data.cases.find((file: CaseFile) => file.status === "open")?.serial;
         if (opened) setViewSerial(opened);
       }
+      if (data.presence) setPresence(data.presence);
       setLink({
         mood: data.emotionalState?.mood,
         warmth: data.emotionalState?.warmth,
@@ -132,46 +140,35 @@ export default function Page() {
         officerName: data.officerName,
       });
     } catch {
-      setLines((prev) => [...prev, { role: "assistant", content: "The link dropped. Try the line again." }]);
+      setLines((prev) => [...prev, { role: "assistant", content: "I lost you for a second." }]);
     } finally {
       setLoading(false);
-      setCutting(false);
     }
   }
 
-  const warmth = Math.round(link.warmth ?? 58);
-  const bond = Math.round((link.relationship ?? 0.32) * 100);
   const shown = cases.find((file) => file.serial === viewSerial) || cases.find((file) => file.status === "open") || null;
 
   return (
     <main className="console">
       <header className="console-bar">
         <div>
-          <p className="console-kicker">LAPD console link</p>
           <h1>Joi</h1>
         </div>
-        <p className="console-status">
-          {link.officerName ? link.officerName : "Officer"} · {link.mood || "neutral"} · warmth {warmth} · bond {bond}
-        </p>
+        {link.officerName ? <p className="console-status">{link.officerName}</p> : null}
       </header>
 
-      <div className="console-body">
+      <div className={shown ? "console-body with-case" : "console-body"}>
         <section className="console-log" ref={scroller} aria-live="polite">
-          {lines.length === 0 && (
-            <p className="console-empty">
-              She is in the glass. Ask her to open a new case file. Every file she cuts is a different one.
-            </p>
-          )}
           {lines.map((line, index) => (
             <article key={`${line.role}-${index}`} className={line.role === "user" ? "from-officer" : "from-joi"}>
-              <span>{line.role === "user" ? "Officer" : "Joi"}</span>
+              <span>{line.role === "user" ? link.officerName || "You" : "Joi"}</span>
               <p>{line.content}</p>
             </article>
           ))}
-          {loading && <p className="console-wait">{cutting ? "Joi is cutting a file…" : "Joi is in the link…"}</p>}
+          {loading && <p className="console-wait">…</p>}
         </section>
 
-        <Dossier file={shown} cases={cases} onSelect={setViewSerial} />
+        {shown && <Dossier file={shown} cases={cases} onSelect={setViewSerial} />}
       </div>
 
       <form
@@ -186,11 +183,11 @@ export default function Page() {
           id="line"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Open a new case file."
+          placeholder="Talk to her."
           autoComplete="off"
         />
-        <button type="button" disabled={loading} onClick={() => void sendMessage("Open a new case file.")}>
-          New file
+        <button type="button" disabled={loading} onClick={() => void sendMessage("Find me someone new.")}>
+          Someone new
         </button>
         <button type="submit" disabled={loading || !input.trim()}>
           Send
@@ -205,22 +202,13 @@ function Dossier({
   cases,
   onSelect,
 }: {
-  file: CaseFile | null;
+  file: CaseFile;
   cases: CaseFile[];
   onSelect: (serial: string) => void;
 }) {
-  if (!file) {
-    return (
-      <aside className="dossier">
-        <p className="console-kicker">No file on the glass</p>
-        <p className="console-empty">When you ask for a new case file, the dossier stays here.</p>
-      </aside>
-    );
-  }
-
   return (
     <aside className="dossier">
-      <p className="console-kicker">{file.status === "open" ? "Open file" : "Closed file"}</p>
+      <p className="console-kicker">{file.subjectName}</p>
       <h2>{file.serial}</h2>
       <p className="dossier-class">{file.classification}</p>
       {cases.length > 1 && (

@@ -159,7 +159,7 @@ body {
 }
 
 @media (min-width: 900px) {
-  .console-body { grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr); }
+  .console-body.with-case { grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr); }
 }
 
 .console-empty, .console-wait {

@@ -13,7 +13,7 @@ export function consoleFact(mind: Mind, message: string): string | null {
   const hasFile = Boolean(activeCase(mind)) || /\b(lapd-rp-|file number|case number)\b/.test(memory);
 
   if (asksAboutFile && !hasFile) {
-    return "Nothing is open in the glass. Ask me for a new case file and I'll cut one.";
+    return "You don't have anyone in front of you. I can find you someone, if you want.";
   }
 
   return null;

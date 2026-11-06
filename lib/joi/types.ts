@@ -20,6 +20,21 @@ export interface MemoryNode {
   lastAccessed: number;
 }
 
+export interface JoiBody {
+  mood: Mood;
+  face: "soft" | "smile" | "still" | "hurt" | "bright";
+  posture: "near" | "upright" | "turned" | "restless";
+  gazeX: number;
+  gazeY: number;
+  gazeHold: number;
+  breathRate: number;
+  breathDepth: number;
+  presence: number;
+  flicker: number;
+  energy: number;
+  delayMs: number;
+}
+
 export interface JoiExpression {
   lightIntensity: number;
   lightHue: number;

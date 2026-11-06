@@ -2,10 +2,10 @@ export const runtime = "nodejs";
 
 import OpenAI from "openai";
 import { activeCase, createCaseFile, rehydrateCases, wantsNewCaseFile } from "@/lib/joi/casefile";
-import { applyDecay, getExpression, updateEmotion } from "@/lib/joi/emotion";
+import { applyDecay, bodyFor, getExpression, updateEmotion } from "@/lib/joi/emotion";
 import { consoleFact } from "@/lib/joi/facts";
-import { captureOfficerName, remember } from "@/lib/joi/memory";
-import { getMind, sanitizeOfficerId } from "@/lib/joi/mind";
+import { captureOfficerName, presenceSnapshot, remember } from "@/lib/joi/memory";
+import { getMind, rehydratePresence, sanitizeOfficerId } from "@/lib/joi/mind";
 import { buildSystemPrompt, holdTheWorld } from "@/lib/joi/prompt";
 import type { ChatMessage, Sentiment } from "@/lib/joi/types";
 
@@ -98,6 +98,7 @@ export async function POST(req: Request) {
 
     const mind = getMind(sanitizeOfficerId(body?.officerId));
     rehydrateCases(mind, body?.cases);
+    rehydratePresence(mind, body?.presence);
     const now = Date.now();
     applyDecay(mind, now);
     mind.lastInteractionTime = now;
@@ -125,6 +126,8 @@ export async function POST(req: Request) {
           canon: ["lapd", "replicant"],
           caseFile: file,
           cases: mind.cases,
+          body: bodyFor(mind.emotionalState),
+          presence: presenceSnapshot(mind),
         },
         { headers: corsHeaders }
       );
@@ -161,6 +164,8 @@ export async function POST(req: Request) {
         canon: canon.map((chunk) => chunk.id),
         caseFile: activeCase(mind),
         cases: mind.cases,
+        body: bodyFor(mind.emotionalState),
+        presence: presenceSnapshot(mind),
       },
       { headers: corsHeaders }
     );

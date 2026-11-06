@@ -36,7 +36,7 @@ export function captureOfficerName(mind: Mind, text: string): void {
   const name = match[1].replace(/\s+/g, " ").replace(/[.,!?].*$/, "").trim();
   if (!name || name.length < 2) return;
   mind.officerName = name;
-  remember(mind, `The officer's name is ${name}. Use it.`, "fact");
+  remember(mind, `Their name is ${name}.`, "fact");
 }
 
 export function memoryContext(mind: Mind): string {
@@ -47,9 +47,16 @@ export function memoryContext(mind: Mind): string {
     .map((item) => item.text)
     .join(" | ");
 
-  const name = mind.officerName
-    ? `The officer's name is ${mind.officerName}. Use it sparingly.`
-    : "No name yet. Say officer until they give you one.";
+  const name = mind.officerName ? `Their name is ${mind.officerName}.` : "You do not know their name yet.";
+  return `${name}\nWhat just happened:\n${recent || "Nothing yet."}\nWhat has stayed:\n${deep || "Nothing yet."}`;
+}
 
-  return `${name}\n\nRecent:\n${recent || "No recent moments yet."}\n\nKept:\n${deep || "Nothing kept yet."}`;
+export function presenceSnapshot(mind: Mind) {
+  const memories = [...mind.longTerm, ...mind.shortTerm].slice(-12).map((item) => item.text);
+  return {
+    officerName: mind.officerName,
+    relationship: mind.relationshipScore,
+    emotionalState: mind.emotionalState,
+    memories,
+  };
 }

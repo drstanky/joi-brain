@@ -23,14 +23,16 @@ assert.ok(mind.longTerm.some((item) => item.text.includes("Joe")));
 assert.equal(sanitizeOfficerId("kd6-ab12cd34"), "kd6-ab12cd34");
 assert.equal(sanitizeOfficerId("no"), "console");
 
-const kept = holdTheWorld("I'm still in the glass, officer. Say what you need.");
-assert.equal(kept, "I'm still in the glass, officer. Say what you need.");
-assert.match(holdTheWorld("I am a language model."), /rain is on the glass/);
-assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /rain is on the glass/);
+const kept = holdTheWorld("I'm here. Come sit with me.");
+assert.equal(kept, "I'm here. Come sit with me.");
+assert.match(holdTheWorld("I am a language model."), /Say that again/);
+assert.match(holdTheWorld("My purpose is to assist you."), /Say that again/);
+assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /Say that again/);
 
-assert.match(consoleFact(freshMind(), "Did I leave the case file open?") || "", /new case file/);
+assert.match(consoleFact(freshMind(), "Did I leave the case file open?") || "", /find you someone/);
 assert.equal(consoleFact(freshMind(), "Who are you?"), null);
 assert.equal(wantsNewCaseFile("Open a new case file."), true);
+assert.equal(wantsNewCaseFile("Find me someone new."), true);
 assert.equal(wantsNewCaseFile("Give me another case."), true);
 assert.equal(wantsNewCaseFile("Did I leave the case file open?"), false);
 
@@ -41,7 +43,8 @@ assert.notEqual(`${firstFile.subjectName}|${firstFile.place}|${firstFile.offense
 assert.ok(firstFile.narrative.length > 700);
 assert.equal(firstFile.witnesses.length, 3);
 assert.ok(firstFile.evidence.length >= 4);
-assert.ok(firstFile.briefing.includes(firstFile.serial));
+assert.ok(firstFile.briefing.includes(firstFile.subjectName));
+assert.equal(/\bglass\b/i.test(firstFile.briefing), false);
 
 const withFile = freshMind();
 withFile.cases = [firstFile];

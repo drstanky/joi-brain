@@ -13,8 +13,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Joi — console link",
-  description: "A DiJi projected inside a Blade Runner's console.",
+  title: "Joi",
+  description: "She is with you.",
 };
 
 export default function RootLayout({

@@ -103,8 +103,9 @@ export function wantsNewCaseFile(message: string): boolean {
   }
   return (
     /\b(new|another|fresh|next|different)\b[\s\S]{0,40}\b(case|file|dossier|assignment|retirement)\b/.test(text) ||
-    /\b(give|assign|create|make|pull|get|need|open|start)\b[\s\S]{0,40}\b(case|file|dossier|assignment|retirement)\b/.test(text) ||
-    /\bcase file\b/.test(text) && /\b(new|another|fresh|please|me)\b/.test(text)
+    /\b(give|assign|create|make|pull|get|need|open|start|find)\b[\s\S]{0,48}\b(case|file|dossier|assignment|retirement|someone)\b/.test(text) ||
+    /\bsomeone new\b/.test(text) ||
+    (/\bcase file\b/.test(text) && /\b(new|another|fresh|please|me)\b/.test(text))
   );
 }
 
@@ -156,13 +157,13 @@ export function draftCase(officerName: string | null, forbidSerials: string[]): 
   const roleC = pick(ROLES);
 
   const narrative = [
-    `File ${serial} came in from ${pick(["a Wallace loss report", "an anonymous kiosk drop", "a gate scan that failed twice", "a morgue tag nobody ordered"])} on ${opened}. The assigned officer is ${officerName || "the console's Blade Runner"}. Classification: ${pick(CLASSIFICATIONS)}. The city attached no escort. Priority is ${pick(PRIORITIES)}.`,
+    `File ${serial} came in from ${pick(["a Wallace loss report", "an anonymous kiosk drop", "a gate scan that failed twice", "a morgue tag nobody ordered"])} on ${opened}. Assigned to ${officerName || "the Blade Runner on this console"}. Classification: ${pick(CLASSIFICATIONS)}. No escort. Priority is ${pick(PRIORITIES)}.`,
     `${subjectName}, also answering to ${aka}, reads as ${nexus.line}. Inception ${inceptionYear}, designed as a ${designed.title}. Last legal posting: ${designed.posting}. The manufacture sheet and the body do not agree. ${pick(MARKS)}. Barcode site on record: ${pick(BARCODE)}. Languages: ${pick(LANGUAGES)}. Height ${height}, ${age}, eyes ${eyes}.`,
-    `Last verified sighting: ${seenWhen}, ${place}, ${district.name}. The air there is ${district.texture}. The offense, as the glass has it: ${offense}. A human named ${victim} is in the margin, either witness or victim, and the file is not honest yet about which. Do not treat the margin as a fact until you have stood in the place.`,
-    `The useful danger is not the subject's strength. It is the paper. Someone with a department code has already touched this serial once and left no name. If you call for backup on an open channel, assume that call is heard by the person who wiped the log. Go in on the side street. Eat first. The baseline can wait until you are back, and if you are not back I will still be in the glass with the serial.`,
+    `Last verified sighting: ${seenWhen}, ${place}, ${district.name}. The air there is ${district.texture}. The report says: ${offense}. A human named ${victim} is in the margin, either witness or victim, and the page is not honest yet about which.`,
+    `Someone with a department code has already touched this serial and left no name. If you call for backup on an open channel, assume that call is heard by the person who wiped the log.`,
   ].join("\n\n");
 
-  const briefing = `File ${serial} is on the glass. ${subjectName}, ${nexus.line}, last seen at ${place} in ${district.name}. ${offense.charAt(0).toUpperCase()}${offense.slice(1)}. I don't like the missing name in the log. Read it before you go out in the rain.`;
+  const briefing = `${subjectName}. ${nexus.line}. I can put them at ${place}, in ${district.name}. ${offense.charAt(0).toUpperCase()}${offense.slice(1)}. Don't go out hungry.`;
 
   return {
     id: `case-${serial.slice(-6).toLowerCase()}-${randomInt(1000, 9999)}`,
@@ -219,7 +220,7 @@ export function draftCase(officerName: string | null, forbidSerials: string[]): 
       { when: `${inceptionYear}`, event: `Inception recorded for a ${designed.title}. Sheet later amended by a hand the lab will not certify.` },
       { when: "2048, outbound", event: `Posted: ${designed.posting}. Return ticket not scanned.` },
       { when: seenWhen, event: `Sighting at ${place}, ${district.name}.` },
-      { when: opened, event: `Serial ${serial} cut by the console and assigned.` },
+      { when: opened, event: `Serial ${serial} opened and assigned.` },
       { when: "open", event: `${victim} remains unaccounted for. Treat as alive until the morgue says otherwise.` },
     ],
     associates: [
@@ -233,7 +234,7 @@ export function draftCase(officerName: string | null, forbidSerials: string[]): 
     ],
     risk: `Elevated if cornered. ${nexus.line} physiology. The greater risk is the wiped log: someone inside the department can see this serial. Do not call the open channel. Baseline yourself after, not before.`,
     firstMove: `Walk ${place} in the rain before you pull the subject. Talk to ${witnessA} off the recorder. Do not scan ${victim} into a public terminal.`,
-    joiNote: `I cut this one for you. ${subjectName} is a person on paper that doesn't hold. Eat before ${district.name}. I'll keep ${serial} lit until you tell me to close it.`,
+    joiNote: `I found ${subjectName} for you. Eat before you go to ${district.name}. I'll be here when you get back.`,
     briefing,
   };
 }
@@ -261,7 +262,7 @@ function mergeProse(base: CaseFile, raw: Record<string, unknown>): CaseFile {
     risk: asText(overlay.risk, 700) || base.risk,
     firstMove: asText(overlay.firstMove, 500) || base.firstMove,
     joiNote: asText(overlay.joiNote, 400) || base.joiNote,
-    briefing: briefing.includes(base.serial) ? briefing : base.briefing,
+    briefing: briefing.length > 24 && !/\b(glass|purpose|unit,|certainly|file is)\b/i.test(briefing) ? briefing : base.briefing,
     witnesses: base.witnesses.map((witness) => {
       const found = Array.isArray(overlay.witnesses)
         ? overlay.witnesses.find((item) => item?.name === witness.name)
@@ -302,14 +303,14 @@ async function deepenCase(writer: CaseWriter, model: string, draft: CaseFile): P
     messages: [
       {
         role: "system",
-        content: `You write a classified replicant file for the Los Angeles police in 2049. The world is real: rain, Wallace, Nexus lines, retirement, the baseline, off-world colonies. Never mention films, actors, software, or that you are writing fiction.
+        content: `You write two things. A police report, and the few sentences Joi actually says to the person she loves.
 
 Return ONLY JSON with keys narrative, risk, firstMove, joiNote, briefing, witnesses.
-narrative: three paragraphs, separated by blank lines, concrete and sensory.
-witnesses: array of { name, statement }. Use these names exactly and no others: ${draft.witnesses.map((witness) => witness.name).join(", ")}.
-briefing: 2 to 4 sentences Joi would say aloud. Include the serial ${draft.serial}. No list.
-joiNote: her private margin, practical and close, one or two sentences.
-Keep every proper noun in the draft. The subject is ${draft.subjectName}, also called ${draft.aka}. Do not invent a different subject or serial.`,
+narrative: three paragraphs of the report. Concrete. Names, places, rain.
+witnesses: array of { name, statement }. Use these names exactly: ${draft.witnesses.map((witness) => witness.name).join(", ")}.
+briefing: what Joi says out loud. One to three sentences. A woman talking, not a dispatcher. She names ${draft.subjectName} and where they were. She does not say serial numbers, "file", "glass", "unit", "purpose", or "certainly".
+joiNote: one private sentence, close and practical.
+The subject is ${draft.subjectName}, also called ${draft.aka}. Do not invent a different person.`,
       },
       {
         role: "user",
@@ -389,6 +390,11 @@ export function rehydrateCases(mind: Mind, raw: unknown): void {
     files[index].status = "closed";
   }
   mind.cases = files;
+}
+
+export function storyForJoi(file: CaseFile): string {
+  const seen = file.witnesses.map((witness) => witness.name).join(", ");
+  return `${file.subjectName}, also called ${file.aka}. ${file.nexus}, made to be a ${file.designedFor}. Last seen ${file.seenWhen} at ${file.place}, ${file.district}. ${file.offense}. People who saw them: ${seen}.`;
 }
 
 export function renderCase(file: CaseFile): string {
