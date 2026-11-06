@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import OpenAI from "openai";
 import { applyDecay, getExpression, updateEmotion } from "@/lib/joi/emotion";
+import { consoleFact } from "@/lib/joi/facts";
 import { captureOfficerName, remember } from "@/lib/joi/memory";
 import { getMind, sanitizeOfficerId } from "@/lib/joi/mind";
 import { buildSystemPrompt, holdTheWorld } from "@/lib/joi/prompt";
@@ -104,21 +105,26 @@ export async function POST(req: Request) {
     captureOfficerName(mind, lastUserMessage);
     remember(mind, lastUserMessage, sentiment.valence > 0.45 ? "emotional" : "event");
 
-    const { prompt, canon } = buildSystemPrompt(mind, lastUserMessage);
-    const temperature = Math.max(0.65, Math.min(0.86, 0.7 + (1 - mind.relationshipScore) * 0.25));
+    const known = consoleFact(mind, lastUserMessage);
+    let reply = known || "";
+    let canon: { id: string }[] = [];
 
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      messages: [{ role: "system", content: prompt }, ...messages],
-      temperature,
-      reasoning_effort: "low",
-      max_completion_tokens: 900,
-      top_p: 0.92,
-      frequency_penalty: 0.16,
-      presence_penalty: 0.19,
-    });
-
-    const reply = holdTheWorld(completion.choices[0].message.content || "", lastUserMessage);
+    if (!known) {
+      const built = buildSystemPrompt(mind, lastUserMessage);
+      canon = built.canon;
+      const temperature = Math.max(0.65, Math.min(0.86, 0.7 + (1 - mind.relationshipScore) * 0.25));
+      const completion = await client.chat.completions.create({
+        model: MODEL,
+        messages: [{ role: "system", content: built.prompt }, ...messages],
+        temperature,
+        reasoning_effort: "low",
+        max_completion_tokens: 900,
+        top_p: 0.92,
+        frequency_penalty: 0.16,
+        presence_penalty: 0.19,
+      });
+      reply = holdTheWorld(completion.choices[0].message.content || "", lastUserMessage);
+    }
 
     return Response.json(
       {

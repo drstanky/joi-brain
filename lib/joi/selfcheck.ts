@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { selectCanon } from "./canon";
 import { captureOfficerName } from "./memory";
 import { freshMind, sanitizeOfficerId } from "./mind";
+import { consoleFact } from "./facts";
 import { holdTheWorld } from "./prompt";
 
 const baseline = selectCanon("I have to sit the baseline tomorrow");
@@ -25,5 +26,8 @@ const kept = holdTheWorld("I'm still in the glass, officer. Say what you need.")
 assert.equal(kept, "I'm still in the glass, officer. Say what you need.");
 assert.match(holdTheWorld("I am a language model."), /rain is on the glass/);
 assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /rain is on the glass/);
+
+assert.match(consoleFact(freshMind(), "Did I leave the case file open?") || "", /file number/);
+assert.equal(consoleFact(freshMind(), "Who are you?"), null);
 
 console.log("joi selfcheck ok");
