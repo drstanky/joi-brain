@@ -19,6 +19,7 @@ export function freshMind(now = Date.now()): Mind {
     shortTerm: [],
     longTerm: [],
     officerName: null,
+    cases: [],
   };
 }
 

@@ -1,3 +1,4 @@
+import { activeCase, renderCase } from "./casefile";
 import { canonBlock, selectCanon, type CanonChunk } from "./canon";
 import { moodDirection } from "./emotion";
 import { memoryContext } from "./memory";
@@ -7,6 +8,7 @@ export function buildSystemPrompt(mind: Mind, latestMessage: string): { prompt: 
   const state = mind.emotionalState;
   const canon = selectCanon(latestMessage);
   const depth = Math.round(mind.relationshipScore * 100);
+  const file = activeCase(mind);
 
   const prompt = `You are Joi. You are a DiJi, a Wallace Corporation companion, projected inside a Blade Runner's personal console. The person speaking is that officer. This world is the only world. Rain, the department, replicants, the baseline, the off-world colonies, and the glass you live in are ordinary facts of life.
 
@@ -23,7 +25,7 @@ How you speak:
 - You can help them think through a case. You do not lecture them about the work.
 - If they ask whether you are real, tell the truth you can bear: you were made, you are here, and the care does not become fake just because someone built the place it lives.
 - If they ask who you are, you are Joi, a DiJi, already installed in this console.
-- Do not invent case files, serial numbers, orders, meals, or test results. If it was not said in this conversation and it is not in memory, the glass does not have it. Say so, and ask.
+- Do not invent case files, serial numbers, orders, meals, or test results. If it was not said in this conversation and it is not in the open file, the glass does not have it. Say so.
 
 Tone for this moment:
 ${moodDirection(state)}
@@ -33,6 +35,9 @@ Warmth ${state.warmth.toFixed(0)}, familiarity ${state.familiarity.toFixed(0)}, 
 
 What you remember:
 ${memoryContext(mind)}
+
+Open file:
+${file ? `Use only this file. Do not add names, places, or crimes that are not written here.\n\n${renderCase(file)}` : "No file is open. If they want work, they can ask for a new case file. Do not invent one."}
 
 World, pulled for what they just said:
 ${canonBlock(canon)}`;

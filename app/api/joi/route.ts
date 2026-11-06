@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import OpenAI from "openai";
+import { activeCase, createCaseFile, rehydrateCases, wantsNewCaseFile } from "@/lib/joi/casefile";
 import { applyDecay, getExpression, updateEmotion } from "@/lib/joi/emotion";
 import { consoleFact } from "@/lib/joi/facts";
 import { captureOfficerName, remember } from "@/lib/joi/memory";
@@ -96,14 +97,38 @@ export async function POST(req: Request) {
     }
 
     const mind = getMind(sanitizeOfficerId(body?.officerId));
+    rehydrateCases(mind, body?.cases);
     const now = Date.now();
     applyDecay(mind, now);
     mind.lastInteractionTime = now;
 
-    const sentiment = await getSentiment(lastUserMessage);
-    updateEmotion(mind, sentiment);
     captureOfficerName(mind, lastUserMessage);
+    const openingFile = wantsNewCaseFile(lastUserMessage);
+    const sentimentPromise = getSentiment(lastUserMessage);
+    const casePromise = openingFile
+      ? createCaseFile((body) => client.chat.completions.create(body), MODEL, mind)
+      : null;
+    const sentiment = await sentimentPromise;
+    updateEmotion(mind, sentiment);
     remember(mind, lastUserMessage, sentiment.valence > 0.45 ? "emotional" : "event");
+
+    if (casePromise) {
+      const file = await casePromise;
+      const reply = holdTheWorld(file.briefing, lastUserMessage);
+      return Response.json(
+        {
+          reply,
+          emotionalState: mind.emotionalState,
+          expression: getExpression(mind.emotionalState),
+          relationship: mind.relationshipScore,
+          officerName: mind.officerName,
+          canon: ["lapd", "replicant"],
+          caseFile: file,
+          cases: mind.cases,
+        },
+        { headers: corsHeaders }
+      );
+    }
 
     const known = consoleFact(mind, lastUserMessage);
     let reply = known || "";
@@ -134,6 +159,8 @@ export async function POST(req: Request) {
         relationship: mind.relationshipScore,
         officerName: mind.officerName,
         canon: canon.map((chunk) => chunk.id),
+        caseFile: activeCase(mind),
+        cases: mind.cases,
       },
       { headers: corsHeaders }
     );
