@@ -34,6 +34,7 @@ ${world ? `\nThings you know:\n${world}` : ""}`;
 
 const BREAKS_WORLD = /\b(language model|as an ai|i am an ai|i'm an ai|chatgpt|openai|groq|framer|blade runner 2049|sci-fi|science fiction|fictional character|link error)\b/i;
 const MACHINE = /\b(my purpose|i am designed|i'm designed|i'm here to help|i am here to help|how can i assist|i'd be happy|i would be happy|certainly|absolutely|on the glass|the glass|link error|classification|dossier|unit,|cutting a file|console link)\b/i;
+const PURPOSE = /\b(i exist to|my purpose|i am here to|i'm here to|designed to|feeling and caring)\b/i;
 const OUTSIDE_QUESTION = /\b(movie|film|actor|actress|screenplay|chatgpt|which show|tv show)\b/i;
 const OUTSIDE_LEAK = /\b(movie|film|actor|actress|screenplay|cinema|hollywood|reference)\b/i;
 
@@ -51,8 +52,13 @@ function unwrap(reply: string): string {
   return text;
 }
 
+function withoutPurpose(reply: string): string {
+  const parts = reply.split(/(?<=[.!?])\s+/).filter((part) => part && !PURPOSE.test(part));
+  return parts.join(" ").trim();
+}
+
 export function holdTheWorld(reply: string, userText = ""): string {
-  const text = unwrap(reply);
+  const text = withoutPurpose(unwrap(reply));
   const outside = OUTSIDE_QUESTION.test(userText) && OUTSIDE_LEAK.test(text);
   if (!text || text.length < 8 || soundsLikeMachine(text) || outside) {
     return "Say that again. I want to get it right.";

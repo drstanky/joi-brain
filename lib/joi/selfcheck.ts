@@ -27,6 +27,10 @@ assert.equal(
   holdTheWorld('Joi whispers, "Aya was in the rain, and then she was gone."'),
   "Aya was in the rain, and then she was gone."
 );
+assert.equal(
+  holdTheWorld("I'm a woman of light, and I'm yours. I exist to be here with you."),
+  "I'm a woman of light, and I'm yours."
+);
 const kept = holdTheWorld("I'm here. Come sit with me.");
 assert.equal(kept, "I'm here. Come sit with me.");
 assert.match(holdTheWorld("I am a language model."), /Say that again/);
