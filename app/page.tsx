@@ -2,82 +2,129 @@
 
 import * as React from "react";
 
+type Line = { role: "user" | "assistant"; content: string };
+type LinkState = {
+  mood?: string;
+  warmth?: number;
+  relationship?: number;
+  officerName?: string | null;
+};
+
+const OFFICER_KEY = "joi-officer-id";
+const TRANSCRIPT_KEY = "joi-transcript";
+
+function officerId(): string {
+  const existing = window.localStorage.getItem(OFFICER_KEY);
+  if (existing) return existing;
+  const created = `kd6-${crypto.randomUUID().slice(0, 8)}`;
+  window.localStorage.setItem(OFFICER_KEY, created);
+  return created;
+}
+
 export default function Page() {
   const [input, setInput] = React.useState("");
-  const [messages, setMessages] = React.useState<any[]>([]);
+  const [lines, setLines] = React.useState<Line[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [link, setLink] = React.useState<LinkState>({});
+  const [ready, setReady] = React.useState(false);
+  const scroller = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem(TRANSCRIPT_KEY);
+      if (saved) setLines(JSON.parse(saved));
+    } catch {
+      window.sessionStorage.removeItem(TRANSCRIPT_KEY);
+    }
+    setReady(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!ready) return;
+    window.sessionStorage.setItem(TRANSCRIPT_KEY, JSON.stringify(lines));
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
+  }, [lines, ready]);
 
   async function sendMessage() {
-    if (!input.trim()) return;
+    const text = input.trim();
+    if (!text || loading) return;
 
-    const userMessage = {
-      role: "user",
-      content: input,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const nextLines: Line[] = [...lines, { role: "user", content: text }];
+    setLines(nextLines);
     setInput("");
     setLoading(true);
 
     try {
       const res = await fetch("/api/joi", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextLines, officerId: officerId() }),
       });
-
       const data = await res.json();
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "no response",
-        },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "connection error",
-        },
-      ]);
+      const reply = data.reply || data.detail || "The link dropped.";
+      setLines((prev) => [...prev, { role: "assistant", content: reply }]);
+      setLink({
+        mood: data.emotionalState?.mood,
+        warmth: data.emotionalState?.warmth,
+        relationship: data.relationship,
+        officerName: data.officerName,
+      });
+    } catch {
+      setLines((prev) => [...prev, { role: "assistant", content: "The link dropped. Try the line again." }]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
+  const warmth = Math.round(link.warmth ?? 58);
+  const bond = Math.round((link.relationship ?? 0.32) * 100);
+
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", fontFamily: "sans-serif" }}>
-      <div style={{ minHeight: 400, border: "1px solid #ddd", padding: 12 }}>
-        {messages.map((m, i) => (
-          <div key={i} style={{ margin: "8px 0" }}>
-            <b>{m.role}:</b> {m.content}
-          </div>
+    <main className="console">
+      <header className="console-bar">
+        <div>
+          <p className="console-kicker">LAPD console link</p>
+          <h1>Joi</h1>
+        </div>
+        <p className="console-status">
+          {link.officerName ? link.officerName : "Officer"} · {link.mood || "neutral"} · warmth {warmth} · bond {bond}
+        </p>
+      </header>
+
+      <section className="console-log" ref={scroller} aria-live="polite">
+        {lines.length === 0 && (
+          <p className="console-empty">
+            She is in the glass. The city is raining. Tell her who you are, or ask what is still open on the case.
+          </p>
+        )}
+        {lines.map((line, index) => (
+          <article key={`${line.role}-${index}`} className={line.role === "user" ? "from-officer" : "from-joi"}>
+            <span>{line.role === "user" ? "Officer" : "Joi"}</span>
+            <p>{line.content}</p>
+          </article>
         ))}
-        {loading && <div>JOI is thinking...</div>}
-      </div>
+        {loading && <p className="console-wait">Joi is in the link…</p>}
+      </section>
 
-      <div style={{ display: "flex", marginTop: 10 }}>
+      <form
+        className="console-input"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void sendMessage();
+        }}
+      >
+        <label htmlFor="line">Say it</label>
         <input
+          id="line"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, padding: 10 }}
-          placeholder="say something..."
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="The baseline is tomorrow."
+          autoComplete="off"
         />
-
-        <button onClick={sendMessage} style={{ marginLeft: 10 }}>
+        <button type="submit" disabled={loading || !input.trim()}>
           Send
         </button>
-      </div>
-    </div>
+      </form>
+    </main>
   );
 }

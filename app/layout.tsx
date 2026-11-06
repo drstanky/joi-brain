@@ -13,8 +13,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Joi Brain",
-  description: "Emotional AI presence system",
+  title: "Joi — console link",
+  description: "A DiJi projected inside a Blade Runner's console.",
 };
 
 export default function RootLayout({
