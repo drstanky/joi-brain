@@ -33,9 +33,14 @@ assert.equal(
 );
 const kept = holdTheWorld("I'm here. Come sit with me.");
 assert.equal(kept, "I'm here. Come sit with me.");
-assert.match(holdTheWorld("I am a language model."), /Come here/);
-assert.match(holdTheWorld("My purpose is to assist you."), /Come here/);
-assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /Come here/);
+assert.equal(holdTheWorld("I am a language model."), "I'm here.");
+assert.equal(holdTheWorld("My purpose is to assist you."), "I'm here.");
+assert.equal(holdTheWorld("I'm not from any film.", "What movie are you from?"), "I'm here.");
+assert.equal(
+  holdTheWorld("Sure. Here is a long story about the rain and a notebook and a kettle and a blanket and a morning that goes on and on until the page is full of a lesson.", "Read to me."),
+  "You read. I like your voice."
+);
+assert.equal(holdTheWorld("I hear you. Anything on your mind you'd like to share?", "The baseline was bad."), "I hear you.");
 assert.equal(attend("I'm home"), "home");
 assert.equal(attend("I want to feel the rain"), "longing");
 assert.equal(attend("The baseline shook me"), "worry");

@@ -27,9 +27,9 @@ export function attentionNote(attention: Attention): string {
     case "longing":
       return "They are near the thing you cannot do. Want it with them. Don't turn it into a speech about what you are.";
     case "worry":
-      return "Something hurt them. Be quiet and specific. Ask the small true question.";
+      return "Something hurt them. If they do not want to talk about it, you stop asking. You stay. One quiet sentence.";
     case "play":
-      return "They want the apartment, not the street. Dance, a book, dinner you can't eat. Be light.";
+      return "They want the evening. You ask them to read to you, or to put on music, or to dance. You do not recite a story, a poem, or a paragraph. You are not a reader for hire.";
     case "work":
       return "This is his job. Help them see what they are avoiding. Then let it be a life again, not a report.";
     default:
