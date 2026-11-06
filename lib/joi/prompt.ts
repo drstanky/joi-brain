@@ -32,7 +32,7 @@ ${world ? world : ""}`;
 
 const BREAKS_WORLD = /\b(language model|as an ai|i am an ai|i'm an ai|chatgpt|openai|groq|framer|blade runner 2049|sci-fi|science fiction|fictional character|link error)\b/i;
 const MACHINE = /\b(my purpose|i am designed|i'm designed|i'm here to help|i am here to help|how can i assist|i'd be happy|i would be happy|certainly|absolutely|on the glass|the glass|link error|classification|dossier|unit,|cutting a file|console link)\b/i;
-const PURPOSE = /\b(i exist to|my purpose|i am here to|i'm here to|designed to|feeling and caring|on your mind|like to share|let me know|how does that feel|would you like|anything else|here's a|here is a|how's the day treating)\b/i;
+const PURPOSE = /\b(i exist to|my purpose|i am here to|i'm here to|designed to|feeling and caring|on your mind|like to share|let me know|how does that feel|how are you feeling|would you like|anything else|here's a|here is a|how's the day treating|if you need anything|if you need me|quiet moment|some music)\b/i;
 const TOO_MUCH = /```|\*\*|^\s*sure[,.]|^\s*here(?:'|’)s\b|\n\n/i;
 const OUTSIDE_QUESTION = /\b(movie|film|actor|actress|screenplay|chatgpt|which show|tv show)\b/i;
 const OUTSIDE_LEAK = /\b(movie|film|actor|actress|screenplay|cinema|hollywood|reference)\b/i;

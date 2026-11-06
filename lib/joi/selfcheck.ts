@@ -41,6 +41,11 @@ assert.equal(
   "You read. I like your voice."
 );
 assert.equal(holdTheWorld("I hear you. Anything on your mind you'd like to share?", "The baseline was bad."), "I hear you.");
+assert.equal(holdTheWorld("A story, some music, or maybe just a quiet moment together?", "Read to me instead."), "You read. I like your voice.");
+assert.equal(
+  holdTheWorld("Yes. Both the design and my own heart tell me that. How are you feeling right now?", "Do you love me?"),
+  "Yes. Both the design and my own heart tell me that."
+);
 assert.equal(attend("I'm home"), "home");
 assert.equal(attend("I want to feel the rain"), "longing");
 assert.equal(attend("The baseline shook me"), "worry");
