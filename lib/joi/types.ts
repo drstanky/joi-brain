@@ -20,8 +20,11 @@ export interface MemoryNode {
   lastAccessed: number;
 }
 
+export type Attention = "home" | "longing" | "work" | "worry" | "play" | "close";
+
 export interface JoiBody {
   mood: Mood;
+  attention: Attention;
   face: "soft" | "smile" | "still" | "hurt" | "bright";
   posture: "near" | "upright" | "turned" | "restless";
   gazeX: number;

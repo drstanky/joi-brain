@@ -86,6 +86,7 @@ export default function Page() {
     try {
       const saved = window.sessionStorage.getItem(TRANSCRIPT_KEY);
       if (saved) setLines(JSON.parse(saved));
+      else setLines([{ role: "assistant", content: "There you are." }]);
     } catch {
       window.sessionStorage.removeItem(TRANSCRIPT_KEY);
     }
@@ -183,12 +184,9 @@ export default function Page() {
           id="line"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Talk to her."
+          placeholder=""
           autoComplete="off"
         />
-        <button type="button" disabled={loading} onClick={() => void sendMessage("Find me someone new.")}>
-          Someone new
-        </button>
         <button type="submit" disabled={loading || !input.trim()}>
           Send
         </button>

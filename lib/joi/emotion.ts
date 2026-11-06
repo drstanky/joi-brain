@@ -1,4 +1,4 @@
-import type { EmotionalState, JoiBody, JoiExpression, Mind, Sentiment } from "./types";
+import type { Attention, EmotionalState, JoiBody, JoiExpression, Mind, Sentiment } from "./types";
 
 export function freshEmotion(): EmotionalState {
   return {
@@ -82,32 +82,34 @@ export function getExpression(state: EmotionalState): JoiExpression {
   };
 }
 
-export function bodyFor(state: EmotionalState): JoiBody {
+export function bodyFor(state: EmotionalState, attention: Attention = "close"): JoiBody {
   const expression = getExpression(state);
   const face =
-    state.mood === "warm" ? "smile" :
-    state.mood === "playful" ? "bright" :
-    state.mood === "melancholic" ? "hurt" :
-    state.mood === "distant" ? "still" :
+    attention === "play" || state.mood === "playful" ? "bright" :
+    attention === "home" || state.mood === "warm" ? "smile" :
+    attention === "longing" || state.mood === "melancholic" ? "hurt" :
+    attention === "worry" || state.mood === "distant" ? "still" :
     "soft";
   const posture =
-    state.mood === "warm" ? "near" :
+    attention === "home" || state.mood === "warm" ? "near" :
+    attention === "play" || state.mood === "playful" ? "restless" :
     state.mood === "distant" ? "turned" :
-    state.mood === "playful" ? "restless" :
     "upright";
+  const hollow = attention === "longing" || state.mood === "melancholic";
 
   return {
     mood: state.mood,
+    attention,
     face,
     posture,
-    gazeX: state.mood === "distant" ? -0.28 : state.mood === "playful" ? 0.12 : 0.02,
-    gazeY: state.mood === "melancholic" ? -0.18 : 0.04,
-    gazeHold: expression.gazeStability,
-    breathRate: expression.breathingSpeed,
-    breathDepth: expression.breathingAmplitude,
-    presence: expression.overallGlow,
-    flicker: expression.holographicFlicker,
-    energy: expression.animationSpeed,
+    gazeX: attention === "worry" ? 0 : state.mood === "distant" ? -0.28 : 0.02,
+    gazeY: hollow ? -0.16 : 0.04,
+    gazeHold: attention === "worry" ? 0.95 : expression.gazeStability,
+    breathRate: hollow ? 0.7 : expression.breathingSpeed,
+    breathDepth: hollow ? 0.8 : expression.breathingAmplitude,
+    presence: hollow ? 0.55 : attention === "home" ? 0.92 : expression.overallGlow,
+    flicker: hollow ? 0.42 : attention === "home" ? 0.04 : expression.holographicFlicker,
+    energy: attention === "play" ? 1.1 : expression.animationSpeed,
     delayMs: expression.responseDelay,
   };
 }

@@ -1,9 +1,9 @@
 export const runtime = "nodejs";
 
 import OpenAI from "openai";
+import { attend } from "@/lib/joi/attention";
 import { activeCase, createCaseFile, rehydrateCases, wantsNewCaseFile } from "@/lib/joi/casefile";
 import { applyDecay, bodyFor, getExpression, updateEmotion } from "@/lib/joi/emotion";
-import { consoleFact } from "@/lib/joi/facts";
 import { captureOfficerName, presenceSnapshot, remember } from "@/lib/joi/memory";
 import { getMind, rehydratePresence, sanitizeOfficerId } from "@/lib/joi/mind";
 import { buildSystemPrompt, holdTheWorld } from "@/lib/joi/prompt";
@@ -104,6 +104,7 @@ export async function POST(req: Request) {
     mind.lastInteractionTime = now;
 
     captureOfficerName(mind, lastUserMessage);
+    const attention = attend(lastUserMessage);
     const openingFile = wantsNewCaseFile(lastUserMessage);
     const sentimentPromise = getSentiment(lastUserMessage);
     const casePromise = openingFile
@@ -126,19 +127,18 @@ export async function POST(req: Request) {
           canon: ["lapd", "replicant"],
           caseFile: file,
           cases: mind.cases,
-          body: bodyFor(mind.emotionalState),
+          body: bodyFor(mind.emotionalState, attention),
           presence: presenceSnapshot(mind),
         },
         { headers: corsHeaders }
       );
     }
 
-    const known = consoleFact(mind, lastUserMessage);
-    let reply = known || "";
+    let reply = "";
     let canon: { id: string }[] = [];
 
-    if (!known) {
-      const built = buildSystemPrompt(mind, lastUserMessage);
+    {
+      const built = buildSystemPrompt(mind, lastUserMessage, attention);
       canon = built.canon;
       const temperature = Math.max(0.65, Math.min(0.86, 0.7 + (1 - mind.relationshipScore) * 0.25));
       const completion = await client.chat.completions.create({
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
         canon: canon.map((chunk) => chunk.id),
         caseFile: activeCase(mind),
         cases: mind.cases,
-        body: bodyFor(mind.emotionalState),
+        body: bodyFor(mind.emotionalState, attention),
         presence: presenceSnapshot(mind),
       },
       { headers: corsHeaders }

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { selectCanon } from "./canon";
 import { captureOfficerName } from "./memory";
 import { freshMind, sanitizeOfficerId } from "./mind";
+import { attend } from "./attention";
 import { draftCase, wantsNewCaseFile } from "./casefile";
-import { consoleFact } from "./facts";
 import { holdTheWorld } from "./prompt";
 
 const baseline = selectCanon("I have to sit the baseline tomorrow");
@@ -33,12 +33,12 @@ assert.equal(
 );
 const kept = holdTheWorld("I'm here. Come sit with me.");
 assert.equal(kept, "I'm here. Come sit with me.");
-assert.match(holdTheWorld("I am a language model."), /Say that again/);
-assert.match(holdTheWorld("My purpose is to assist you."), /Say that again/);
-assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /Say that again/);
-
-assert.match(consoleFact(freshMind(), "Did I leave the case file open?") || "", /find you someone/);
-assert.equal(consoleFact(freshMind(), "Who are you?"), null);
+assert.match(holdTheWorld("I am a language model."), /Come here/);
+assert.match(holdTheWorld("My purpose is to assist you."), /Come here/);
+assert.match(holdTheWorld("I'm not from any film.", "What movie are you from?"), /Come here/);
+assert.equal(attend("I'm home"), "home");
+assert.equal(attend("I want to feel the rain"), "longing");
+assert.equal(attend("The baseline shook me"), "worry");
 assert.equal(wantsNewCaseFile("Open a new case file."), true);
 assert.equal(wantsNewCaseFile("Find me someone new."), true);
 assert.equal(wantsNewCaseFile("Give me another case."), true);
@@ -53,9 +53,5 @@ assert.equal(firstFile.witnesses.length, 3);
 assert.ok(firstFile.evidence.length >= 4);
 assert.ok(firstFile.briefing.includes(firstFile.subjectName));
 assert.equal(/\bglass\b/i.test(firstFile.briefing), false);
-
-const withFile = freshMind();
-withFile.cases = [firstFile];
-assert.equal(consoleFact(withFile, "Did I leave the case file open?"), null);
 
 console.log("joi selfcheck ok");
